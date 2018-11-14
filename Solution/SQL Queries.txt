@@ -1,0 +1,162 @@
+CS532 : Project 1
+
+Group Members - 
+Name : Shriram Suryawanshi (B00734421)
+Name : Vinen Furtado (B00717015)
+
+
+
+
+
+
+SQL Queries - 
+
+
+Q1 - 
+SELECT concat(co.dept_code, co.course#) AS course_id, title FROM courses co , classes cl
+WHERE co.course# = cl.course# AND cl.year = 2018 AND cl.semester='Spring';
+
+
+Q2 - 
+SELECT firstname FROM students
+WHERE sid IN
+((SELECT sid FROM enrollments en JOIN classes cl ON en.classid = cl.classid AND cl.dept_code = 'Math')
+INTERSECT
+(SELECT sid FROM enrollments en JOIN classes cl ON en.classid = cl.classid AND cl.dept_code = 'CS'));
+
+
+Q3 - 
+SELECT dept_code, course# FROM courses
+MINUS
+(SELECT dept_code, course# FROM classes WHERE year = 2017);
+
+
+Q4 - 
+SELECT UNIQUE st.sid, st.firstname, st.gpa FROM students st, enrollments en
+WHERE  status != 'graduate' AND st.sid=en.sid AND en.lgrade = 'A';
+
+
+Q5 - 
+SELECT firstname FROM students
+WHERE sid in
+((SELECT st.sid FROM students st, enrollments en WHERE st.sid = en.sid)
+MINUS
+(SELECT st.sid FROM students st, enrollments en WHERE st.sid = en.sid AND en.lgrade = 'A'));
+
+
+Q6 -
+SELECT sid, firstname FROM students
+WHERE sid in
+((SELECT sid FROM enrollments WHERE lgrade = 'A' AND lgrade IS NOT NULL)
+MINUS
+(SELECT e.sid FROM enrollments e WHERE e.sid = sid AND e.lgrade != 'A' AND e.lgrade IS NOT NULL));
+
+
+Q7 - 
+SELECT dept_code, course# FROM
+(SELECT dept_code, course#, COUNT(*) AS count1 FROM classes GROUP BY dept_code, course#)
+WHERE count1 IN (SELECT MAX(COUNT(*)) AS count1 FROM classes GROUP BY dept_code, course#);
+
+
+Q8 - 
+SELECT classid, dept_code, course#, (limit - class_size) AS seats_available FROM classes
+WHERE year = 2018 AND semester = 'Spring' AND limit != class_size;
+
+
+Q9 - 
+SELECT st.* FROM students st
+JOIN (SELECT sid FROM enrollments GROUP BY sid HAVING COUNT(classid) > 4) en ON en.sid = st.sid;
+
+
+Q10 - 
+SELECT cl.* FROM classes cl JOIN (SELECT classid FROM enrollments GROUP BY classid HAVING COUNT(classid) < 3) en
+ON en.classid = cl.classid WHERE  cl.dept_code = 'CS' AND cl.year = 2018 AND cl.semester ='Spring';
+ 
+
+Q11 - 
+SELECT sid, firstname FROM students
+WHERE sid IN (SELECT sid FROM enrollments WHERE classid IN
+(SELECT classid FROM classes WHERE dept_code = 'CS' AND course# > 400) GROUP BY sid
+HAVING COUNT(*) =
+(SELECT COUNT(*) FROM classes WHERE dept_code = 'CS' AND course# > 400));
+
+
+Q12 - 
+(SELECT  temp2.title FROM enrollments en INNER JOIN
+(SELECT cl.course#, temp1.title, cl.classid FROM classes cl INNER JOIN
+(SELECT co.course#, co.title FROM courses co) temp1
+ON temp1.course# = cl.course# ) temp2
+ON temp2.classid = en.classid
+WHERE sid = 'B001')
+MINUS
+(SELECT  temp2.title FROM enrollments en INNER JOIN
+(SELECT cl.course#, temp1.title, cl.classid FROM classes cl INNER JOIN
+(SELECT co.course#, co.title FROM courses co) temp1
+ON temp1.course# = cl.course# ) temp2
+ON temp2.classid = en.classid
+WHERE sid = 'B002');
+
+
+Q13 - 
+SELECT firstname FROM students
+WHERE sid IN (SELECT sid FROM enrollments WHERE classid IN
+SELECT classid FROM enrollments WHERE sid = 'B005'));
+ 
+
+Q14 - 
+SELECT dept_code, course#, semester, year FROM classes GROUP BY dept_code, course#, semester, year HAVING COUNT(course#) >= 2;
+
+
+Q15 - 
+SELECT sid, firstname FROM students
+WHERE sid IN
+(SELECT sid FROM enrollments en JOIN (SELECT classid, MIN(lgrade) AS lgrade FROM enrollments GROUP BY classid) en_new
+ON en_new.classid = en.classid AND en_new.lgrade = en.lgrade);
+
+
+Q16 - 
+SELECT temp2.course#, temp2.title, temp2.dept_code, NVL(en.lgrade , 'To be assigned') AS grade FROM enrollments en INNER JOIN
+(SELECT cl.classid, cl.course#, temp1.title, cl.dept_code FROM classes cl INNER JOIN
+(SELECT co.course#, co.title FROM courses co) temp1
+ON temp1.course# = cl.course#) temp2
+ON temp2.classid = en.classid
+WHERE en.sid = 'B003';
+ 
+
+ Q17 - 
+SELECT co.dept_code, co.course#, co.title FROM courses co INNER JOIN
+(SELECT cl.classid, cl.course#, temp2.sid FROM classes cl INNER JOIN
+(SELECT UNIQUE (en.sid), en.classid FROM enrollments en INNER JOIN
+(SELECT st.sid, st.gpa FROM students st WHERE gpa > 3.25) temp1
+ON en.sid = temp1.sid) temp2
+ON temp2.classid = cl.classid) temp3
+ON temp3.course# = co.course#
+WHERE co.title LIKE '%systems%';
+  
+
+Q18 - 
+SELECT firstname, st.sid, NVL(sum1,0) FROM students st LEFT JOIN
+(SELECT en.sid, SUM(temp.credits) AS sum1 FROM enrollments en INNER JOIN
+(SELECT cl.classid, cl.course#, cc.credits FROM classes cl INNER JOIN
+(SELECT course#, credits FROM course_credit) cc
+ON cl.course# = cc.course#) temp
+ON en.classid = temp.classid
+WHERE en.lgrade IS NOT NULL GROUP BY sid) cl
+ON st.sid = cl.sid;
+ 
+
+Q19 - 
+SELECT AVG(SUM1) AS avergae_credits FROM students st INNER JOIN
+(SELECT en.sid, SUM(temp.credits) AS SUM1 FROM enrollments en INNER JOIN
+(SELECT cl.classid, cl.course#, cc.credits FROM classes cl INNER JOIN
+(SELECT course#, credits FROM course_credit) cc
+ON cl.course# = cc.course#) temp
+ON en.classid = temp.classid
+WHERE en.lgrade IS NOT NULL GROUP BY sid) cl
+ON st.sid = cl.sid;
+
+
+Q20 - 
+SELECT sid, sum1 / cnt AS cgpa FROM (SELECT sid, SUM(grade) AS sum1, COUNT(classid) AS cnt FROM enrollments en
+INNER JOIN (SELECT lgrade, ngrade AS grade FROM grades) gr ON gr.lgrade = en.lgrade GROUP BY sid) ORDER BY cgpa DESC;
+
